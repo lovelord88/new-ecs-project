@@ -1,0 +1,26 @@
+# Set variables (replace as needed)
+CLUSTER_NAME=nginx-ecs-cluster
+SERVICE_NAME=nginx-ecs-service
+
+# Get the first running task ARN
+TASK_ARN=$(aws ecs list-tasks \
+  --cluster "$CLUSTER_NAME" \
+  --service-name "$SERVICE_NAME" \
+  --query 'taskArns[0]' \
+  --output text)
+
+# Get the network interface ID (ENI) of the task
+ENI_ID=$(aws ecs describe-tasks \
+  --cluster "$CLUSTER_NAME" \
+  --tasks "$TASK_ARN" \
+  --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+  --output text)
+
+# Get the public IP address associated with the ENI
+PUBLIC_IP=$(aws ec2 describe-network-interfaces \
+  --network-interface-ids "$ENI_ID" \
+  --query 'NetworkInterfaces[0].Association.PublicIp' \
+  --output text)
+
+# Print the result
+echo "Public IP: $PUBLIC_IP"
